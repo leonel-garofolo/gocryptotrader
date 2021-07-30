@@ -9,6 +9,12 @@ services:
     ports:
       - "9054:80"
 
+  db:
+    image: postgres
+    restart: always
+    env_file:
+      - database.env # configure postgres
+
   daemon:
     build: .
     ports:

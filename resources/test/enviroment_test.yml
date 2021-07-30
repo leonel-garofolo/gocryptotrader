@@ -1,0 +1,6 @@
+gocrypto:
+  currency:
+    coinmarketcap:
+      apikey: 9bd626e0-35b7-40de-ab4b-c1cdd954399d
+      apiAccountPlanLevel: basic
+      

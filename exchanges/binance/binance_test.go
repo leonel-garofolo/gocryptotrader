@@ -218,13 +218,19 @@ func TestU24HTickerPriceChangeStats(t *testing.T) {
 
 func TestUSymbolPriceTicker(t *testing.T) {
 	t.Parallel()
-	_, err := b.USymbolPriceTicker(currency.NewPair(currency.BTC, currency.USDT))
+	uSymbolPriceTicker, err := b.USymbolPriceTicker(currency.NewPair(currency.BTC, currency.USDT))
 	if err != nil {
 		t.Error(err)
 	}
 	_, err = b.USymbolPriceTicker(currency.Pair{})
 	if err != nil {
 		t.Error(err)
+	}
+
+	for _, price := range uSymbolPriceTicker {
+		fmt.Println(
+			"Symbol", price.Symbol,
+			"Price", price.Price)
 	}
 }
 
@@ -607,10 +613,11 @@ func TestGetInterestHistory(t *testing.T) {
 
 func TestGetCrossMarginInterestHistory(t *testing.T) {
 	t.Parallel()
-	_, err := b.GetCrossMarginInterestHistory()
+	crossMarginInterestHistory, err := b.GetCrossMarginInterestHistory()
 	if err != nil {
 		t.Error(err)
 	}
+	fmt.Println("hisoty", crossMarginInterestHistory.Message)
 }
 
 func TestGetFundingRates(t *testing.T) {

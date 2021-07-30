@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 )
 
@@ -165,6 +166,11 @@ func TestGetHMAC(t *testing.T) {
 			expectedmd5, md5,
 		)
 	}
+}
+
+func TestGetNewHMAC(t *testing.T) {
+	sha256 := GetHMAC(HashSHA256, []byte("Hello,World"), []byte("1234"))
+	fmt.Println(sha256)
 }
 
 func TestSha1Tohex(t *testing.T) {

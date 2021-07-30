@@ -1,24 +1,57 @@
 package coinmarketcap
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/thrasher-corp/gocryptotrader/log"
+	"gopkg.in/yaml.v3"
 )
 
+// Please set API keys to test endpoint in resource/enviroment_test
 var c Coinmarketcap
 
-// Please set API keys to test endpoint
-const (
-	apikey              = ""
-	apiAccountPlanLevel = ""
-)
+type DataTest struct {
+	Gocrypto struct {
+		Currency struct {
+			Coinmarketcap struct {
+				Apikey              string `yaml:"apikey"`
+				ApiAccountPlanLevel string `yaml:"apiAccountPlanLevel"`
+			} `yaml:"coinmarketcap"`
+		} `yaml:"currency"`
+	} `yaml:"gocrypto"`
+}
+
+func readConf() (*DataTest, error) {
+	pwd, _ := os.Getwd()
+	filename := pwd + "\\..\\..\\resources\\test\\enviroment_test.yml"
+	fmt.Println(filename)
+	buf, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &DataTest{}
+	err = yaml.Unmarshal(buf, c)
+	if err != nil {
+		return nil, fmt.Errorf("in file %q: %v", filename, err)
+	}
+
+	return c, nil
+}
 
 // Checks credentials but also checks to see if the function can take the
 // required account plan level
 func areAPICredtionalsSet(minAllowable uint8) bool {
-	if apiAccountPlanLevel != "" && apikey != "" {
+	dataTest, err := readConf()
+	if err != nil {
+		return false
+	}
+
+	if dataTest.Gocrypto.Currency.Coinmarketcap.ApiAccountPlanLevel != "" && dataTest.Gocrypto.Currency.Coinmarketcap.Apikey != "" {
 		if err := c.CheckAccountPlan(minAllowable); err != nil {
 			log.Warn(log.Global, "coinmarketpcap test suite - account plan not allowed for function, please review or upgrade plan to test")
 			return false
@@ -35,9 +68,14 @@ func TestSetDefaults(t *testing.T) {
 func TestSetup(t *testing.T) {
 	c.SetDefaults()
 
+	dataTest, err := readConf()
+	if err != nil {
+		return
+	}
+
 	cfg := Settings{}
-	cfg.APIkey = apikey
-	cfg.AccountPlan = apiAccountPlanLevel
+	cfg.APIkey = dataTest.Gocrypto.Currency.Coinmarketcap.Apikey
+	cfg.AccountPlan = dataTest.Gocrypto.Currency.Coinmarketcap.ApiAccountPlanLevel
 	cfg.Enabled = true
 	cfg.AccountPlan = "basic"
 
@@ -86,7 +124,7 @@ func TestCheckAccountPlan(t *testing.T) {
 func TestGetCryptocurrencyInfo(t *testing.T) {
 	c.SetDefaults()
 	TestSetup(t)
-	_, err := c.GetCryptocurrencyInfo(1)
+	cryptocurrencyInfo, err := c.GetCryptocurrencyInfo(1)
 	if areAPICredtionalsSet(Basic) {
 		if err != nil {
 			t.Error("GetCryptocurrencyInfo() error", err)
@@ -95,6 +133,14 @@ func TestGetCryptocurrencyInfo(t *testing.T) {
 		if err == nil {
 			t.Error("GetCryptocurrencyInfo() error cannot be nil")
 		}
+	}
+
+	for key, crypto := range cryptocurrencyInfo {
+		fmt.Println("Crypto:", key, "=>",
+			"Name:", crypto.Name,
+			"Simbol:", crypto.Symbol,
+			"Platform:", crypto.Platform,
+			"Category:", crypto.Category)
 	}
 }
 
@@ -125,7 +171,7 @@ func TestGetCryptocurrencyHistoricalListings(t *testing.T) {
 func TestGetCryptocurrencyLatestListing(t *testing.T) {
 	c.SetDefaults()
 	TestSetup(t)
-	_, err := c.GetCryptocurrencyLatestListing(0, 0)
+	cryptocurrencyLatestListings, err := c.GetCryptocurrencyLatestListing(0, 10)
 	if areAPICredtionalsSet(Basic) {
 		if err != nil {
 			t.Error("GetCryptocurrencyLatestListing() error", err)
@@ -135,12 +181,23 @@ func TestGetCryptocurrencyLatestListing(t *testing.T) {
 			t.Error("GetCryptocurrencyLatestListing() error cannot be nil")
 		}
 	}
+
+	for key, crypto := range cryptocurrencyLatestListings {
+		fmt.Println("Crypto:", key, "=>",
+			"Name:", crypto.Name,
+			"Simbol:", crypto.Symbol,
+			"Platform:", crypto.Platform,
+			"Quote:", crypto.Quote.USD.Price,
+			"CmcRank:", crypto.CmcRank,
+			"TotalSupply:", crypto.TotalSupply,
+		)
+	}
 }
 
 func TestGetCryptocurrencyLatestMarketPairs(t *testing.T) {
 	c.SetDefaults()
 	TestSetup(t)
-	_, err := c.GetCryptocurrencyLatestMarketPairs(1, 0, 0)
+	cryptocurrencyLatestMarketPairs, err := c.GetCryptocurrencyLatestMarketPairs(1, 0, 0)
 	if areAPICredtionalsSet(Standard) {
 		if err != nil {
 			t.Error("GetCryptocurrencyLatestMarketPairs() error",
@@ -151,6 +208,13 @@ func TestGetCryptocurrencyLatestMarketPairs(t *testing.T) {
 			t.Error("GetCryptocurrencyLatestMarketPairs() error cannot be nil")
 		}
 	}
+
+	fmt.Println("Crypto:", cryptocurrencyLatestMarketPairs.ID, "=>",
+		"Name:", cryptocurrencyLatestMarketPairs.Name,
+		"Simbol:", cryptocurrencyLatestMarketPairs.Symbol,
+		"Simbol:", cryptocurrencyLatestMarketPairs.NumMarketPairs,
+	)
+
 }
 
 func TestGetCryptocurrencyOHLCHistorical(t *testing.T) {
@@ -272,7 +336,7 @@ func TestGetExchangeLatestListings(t *testing.T) {
 func TestGetExchangeLatestMarketPairs(t *testing.T) {
 	c.SetDefaults()
 	TestSetup(t)
-	_, err := c.GetExchangeLatestMarketPairs(1, 0, 0)
+	exchangeLatestMarketPairs, err := c.GetExchangeLatestMarketPairs(1, 0, 0)
 	if areAPICredtionalsSet(Standard) {
 		if err != nil {
 			t.Error("GetExchangeLatestMarketPairs() error",
@@ -283,6 +347,7 @@ func TestGetExchangeLatestMarketPairs(t *testing.T) {
 			t.Error("GetExchangeLatestMarketPairs() error cannot be nil")
 		}
 	}
+	fmt.Println(exchangeLatestMarketPairs.ID, exchangeLatestMarketPairs.Name)
 }
 
 func TestGetExchangeLatestQuotes(t *testing.T) {
